@@ -54,12 +54,7 @@ class DownloadRequest(BaseModel):
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def get_cookies_file() -> Optional[str]:
-    """Get cookies from file or environment variable"""
-    # First try file-based cookies from project root
-    cookie_file = Path(__file__).parent.parent / "cookies.txt"
-    if cookie_file.exists():
-        return str(cookie_file)
-    
+    """Get cookies from environment variable only (Vercel compatible)"""
     # Try environment variable (base64 encoded)
     cookies_b64 = os.environ.get("YOUTUBE_COOKIES_B64")
     if cookies_b64:
