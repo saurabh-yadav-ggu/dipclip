@@ -149,24 +149,9 @@ async def run_download_task(job_id: str, req: DownloadRequest):
             "no_warnings": True,
             "progress_hooks": [make_progress_hook(job_id)],
             "postprocessor_hooks": [make_postprocessor_hook(job_id)],
-            # Add options to bypass bot detection
-            "extractor_args": {
-                "youtube": {
-                    "player_client": ["android", "ios", "web"],
-                    "player_skip": ["configs", "webpage", "js", "age_gate", "login"],
-                }
-            },
-            "user_agent": "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
-            "nocheckcertificate": True,
-            "ignoreerrors": True,
         }
         if ffmpeg_path:
             ydl_opts["ffmpeg_location"] = ffmpeg_path
-        
-        # Add cookie support
-        cookies_file = get_cookies_file()
-        if cookies_file:
-            ydl_opts["cookiefile"] = cookies_file
             
         is_audio = req.resolution == "Audio Only" or req.type == "audio"
         
@@ -275,22 +260,7 @@ async def get_video_info(req: InfoRequest):
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
-        # Add options to bypass bot detection
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["android", "ios", "web"],
-                "player_skip": ["configs", "webpage", "js", "age_gate", "login"],
-            }
-        },
-        "user_agent": "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
-        "nocheckcertificate": True,
-        "ignoreerrors": True,
     }
-    
-    # Add cookie support
-    cookies_file = get_cookies_file()
-    if cookies_file:
-        ydl_opts["cookiefile"] = cookies_file
 
     try:
         loop = asyncio.get_event_loop()
