@@ -9,8 +9,9 @@ from typing import Optional, Dict, Any
 import yt_dlp
 import imageio_ffmpeg
 from fastapi import FastAPI, HTTPException, BackgroundTasks
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 # ── App Setup ─────────────────────────────────────────────────────────────────
@@ -220,6 +221,15 @@ async def run_download_task(job_id: str, req: DownloadRequest):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/")
+async def serve_frontend():
+    """Serve the frontend HTML file"""
+    html_path = Path(__file__).parent.parent / "index.html"
+    if html_path.exists():
+        return HTMLResponse(content=html_path.read_text())
+    return HTMLResponse(content="<h1>Frontend not found</h1>", status_code=404)
 
 
 @app.post("/api/info")
