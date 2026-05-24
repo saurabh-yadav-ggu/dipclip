@@ -4,6 +4,7 @@ import asyncio
 import tempfile
 import json
 import base64
+import urllib.parse
 from pathlib import Path
 from typing import Optional, Dict, Any
 
@@ -55,13 +56,14 @@ class DownloadRequest(BaseModel):
 
 def get_cookies_file() -> Optional[str]:
     """Get cookies from environment variable only (Vercel compatible)"""
-    # Try environment variable (base64 encoded)
-    cookies_b64 = os.environ.get("YOUTUBE_COOKIES_B64")
-    if cookies_b64:
+    # Try environment variable (URL encoded)
+    cookies_encoded = os.environ.get("YOUTUBE_COOKIES")
+    if cookies_encoded:
         try:
             # Remove any whitespace or newlines that might have been added
-            cookies_b64 = cookies_b64.strip().replace('\n', '').replace('\r', '')
-            cookies_content = base64.b64decode(cookies_b64).decode('utf-8')
+            cookies_encoded = cookies_encoded.strip().replace('\n', '').replace('\r', '')
+            # URL decode the cookies
+            cookies_content = urllib.parse.unquote(cookies_encoded)
             # Write to /tmp directory which is writable on Vercel
             temp_cookie_file = Path("/tmp") / "cookies.txt"
             temp_cookie_file.write_text(cookies_content)
