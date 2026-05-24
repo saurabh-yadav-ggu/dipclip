@@ -166,11 +166,13 @@ async def run_download_task(job_id: str, req: DownloadRequest):
             # Add options to bypass bot detection
             "extractor_args": {
                 "youtube": {
-                    "player_client": ["android", "web"],
-                    "player_skip": ["configs", "webpage", "js"],
+                    "player_client": ["android", "ios", "web"],
+                    "player_skip": ["configs", "webpage", "js", "age_gate", "login"],
                 }
             },
-            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "user_agent": "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+            "nocheckcertificate": True,
+            "ignoreerrors": True,
         }
         if ffmpeg_path:
             ydl_opts["ffmpeg_location"] = ffmpeg_path
@@ -290,11 +292,13 @@ async def get_video_info(req: InfoRequest):
         # Add options to bypass bot detection
         "extractor_args": {
             "youtube": {
-                "player_client": ["android", "web"],
-                "player_skip": ["configs", "webpage", "js"],
+                "player_client": ["android", "ios", "web"],
+                "player_skip": ["configs", "webpage", "js", "age_gate", "login"],
             }
         },
-        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "user_agent": "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+        "nocheckcertificate": True,
+        "ignoreerrors": True,
     }
     
     # Add cookie support
