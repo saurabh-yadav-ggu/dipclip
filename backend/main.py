@@ -56,22 +56,7 @@ class DownloadRequest(BaseModel):
 
 def get_cookies_file() -> Optional[str]:
     """Get cookies from environment variable only (Vercel compatible)"""
-    # Try environment variable (URL encoded)
-    cookies_encoded = os.environ.get("YOUTUBE_COOKIES")
-    if cookies_encoded:
-        try:
-            # Remove any whitespace or newlines that might have been added
-            cookies_encoded = cookies_encoded.strip().replace('\n', '').replace('\r', '')
-            # URL decode the cookies
-            cookies_content = urllib.parse.unquote(cookies_encoded)
-            # Write to /tmp directory which is writable on Vercel
-            temp_cookie_file = Path("/tmp") / "cookies.txt"
-            temp_cookie_file.write_text(cookies_content)
-            return str(temp_cookie_file)
-        except Exception as e:
-            print(f"Error decoding cookies: {e}")
-            pass
-    
+    # Temporarily disable cookies to test if error is related to cookies
     return None
 
 RESOLUTION_ORDER = {
