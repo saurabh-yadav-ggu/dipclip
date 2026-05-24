@@ -55,9 +55,23 @@ class DownloadRequest(BaseModel):
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def get_cookies_file() -> Optional[str]:
-    """Get cookies from environment variable only (Vercel compatible)"""
-    # Temporarily disable cookies to test if error is related to cookies
+    """Return path to a cookies file if it exists.
+    The function looks for an environment variable YTDLP_COOKIES_PATH;
+    if not set, it falls back to a file named 'cookies.txt' in the project root.
+    Returns None if no file is found, allowing yt-dlp to run without cookies.
+    """
+    import os
+    # Prefer explicit env var
+    env_path = os.getenv('YTDLP_COOKIES_PATH')
+    if env_path and os.path.isfile(env_path):
+        return env_path
+    # Try default location in project root
+    default_path = os.path.join(os.path.dirname(__file__), '..', 'cookies.txt')
+    default_path = os.path.abspath(default_path)
+    if os.path.isfile(default_path):
+        return default_path
     return None
+
 
 RESOLUTION_ORDER = {
     "2160p": 0, "1440p": 1, "1080p": 2, "720p": 3,
