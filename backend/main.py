@@ -55,7 +55,7 @@ class DownloadRequest(BaseModel):
 
 def get_cookies_file() -> Optional[str]:
     """Get cookies from file or environment variable"""
-    # First try file-based cookies
+    # First try file-based cookies from project root
     cookie_file = Path(__file__).parent.parent / "cookies.txt"
     if cookie_file.exists():
         return str(cookie_file)
@@ -67,7 +67,8 @@ def get_cookies_file() -> Optional[str]:
             # Remove any whitespace or newlines that might have been added
             cookies_b64 = cookies_b64.strip().replace('\n', '').replace('\r', '')
             cookies_content = base64.b64decode(cookies_b64).decode('utf-8')
-            temp_cookie_file = DOWNLOAD_DIR / "cookies.txt"
+            # Write to /tmp directory which is writable on Vercel
+            temp_cookie_file = Path("/tmp") / "cookies.txt"
             temp_cookie_file.write_text(cookies_content)
             return str(temp_cookie_file)
         except Exception as e:
