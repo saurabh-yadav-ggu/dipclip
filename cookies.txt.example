@@ -1,0 +1,9 @@
+# YouTube Cookies File
+# To use this file:
+# 1. Export cookies from your browser using a browser extension like "Get cookies.txt"
+# 2. Rename this file to cookies.txt
+# 3. Place it in the project root directory
+#
+# For more information, see:
+# https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp
+# https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies

@@ -145,6 +145,11 @@ async def run_download_task(job_id: str, req: DownloadRequest):
         }
         if ffmpeg_path:
             ydl_opts["ffmpeg_location"] = ffmpeg_path
+        
+        # Add cookie support if cookie file exists
+        cookie_file = Path(__file__).parent.parent / "cookies.txt"
+        if cookie_file.exists():
+            ydl_opts["cookiefile"] = str(cookie_file)
             
         is_audio = req.resolution == "Audio Only" or req.type == "audio"
         
@@ -254,6 +259,11 @@ async def get_video_info(req: InfoRequest):
         "no_warnings": True,
         "skip_download": True,
     }
+    
+    # Add cookie support if cookie file exists
+    cookie_file = Path(__file__).parent.parent / "cookies.txt"
+    if cookie_file.exists():
+        ydl_opts["cookiefile"] = str(cookie_file)
 
     try:
         loop = asyncio.get_event_loop()
