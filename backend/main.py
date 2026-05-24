@@ -3,6 +3,7 @@ import uuid
 import asyncio
 import tempfile
 import json
+import base64
 from pathlib import Path
 from typing import Optional, Dict, Any
 
@@ -51,6 +52,26 @@ class DownloadRequest(BaseModel):
     type: Optional[str] = "video"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+def get_cookies_file() -> Optional[str]:
+    """Get cookies from file or environment variable"""
+    # First try file-based cookies
+    cookie_file = Path(__file__).parent.parent / "cookies.txt"
+    if cookie_file.exists():
+        return str(cookie_file)
+    
+    # Try environment variable (base64 encoded)
+    cookies_b64 = os.environ.get("YOUTUBE_COOKIES_B64")
+    if cookies_b64:
+        try:
+            cookies_content = base64.b64decode(cookies_b64).decode('utf-8')
+            temp_cookie_file = DOWNLOAD_DIR / "cookies.txt"
+            temp_cookie_file.write_text(cookies_content)
+            return str(temp_cookie_file)
+        except Exception:
+            pass
+    
+    return None
 
 RESOLUTION_ORDER = {
     "2160p": 0, "1440p": 1, "1080p": 2, "720p": 3,
@@ -146,10 +167,10 @@ async def run_download_task(job_id: str, req: DownloadRequest):
         if ffmpeg_path:
             ydl_opts["ffmpeg_location"] = ffmpeg_path
         
-        # Add cookie support if cookie file exists
-        cookie_file = Path(__file__).parent.parent / "cookies.txt"
-        if cookie_file.exists():
-            ydl_opts["cookiefile"] = str(cookie_file)
+        # Add cookie support
+        cookies_file = get_cookies_file()
+        if cookies_file:
+            ydl_opts["cookiefile"] = cookies_file
             
         is_audio = req.resolution == "Audio Only" or req.type == "audio"
         
@@ -260,10 +281,10 @@ async def get_video_info(req: InfoRequest):
         "skip_download": True,
     }
     
-    # Add cookie support if cookie file exists
-    cookie_file = Path(__file__).parent.parent / "cookies.txt"
-    if cookie_file.exists():
-        ydl_opts["cookiefile"] = str(cookie_file)
+    # Add cookie support
+    cookies_file = get_cookies_file()
+    if cookies_file:
+        ydl_opts["cookiefile"] = cookies_file
 
     try:
         loop = asyncio.get_event_loop()

@@ -1,8 +1,16 @@
-# YouTube Cookies File
-# To use this file:
+# YouTube Cookies Configuration
+# 
+# Option 1: File-based cookies (for local development)
 # 1. Export cookies from your browser using a browser extension like "Get cookies.txt"
 # 2. Rename this file to cookies.txt
 # 3. Place it in the project root directory
+#
+# Option 2: Environment variable (for Vercel deployment)
+# 1. Export cookies from your browser using a browser extension
+# 2. Base64 encode the cookies content:
+#    - On Linux/Mac: base64 -w 0 cookies.txt
+#    - On Windows: [Convert]::ToBase64String([IO.File]::ReadAllBytes("cookies.txt"))
+# 3. Set the YOUTUBE_COOKIES_B64 environment variable in Vercel with the base64 string
 #
 # For more information, see:
 # https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp
