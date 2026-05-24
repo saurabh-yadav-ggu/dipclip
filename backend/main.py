@@ -226,10 +226,22 @@ async def health():
 @app.get("/")
 async def serve_frontend():
     """Serve the frontend HTML file"""
-    html_path = Path(__file__).parent.parent / "index.html"
-    if html_path.exists():
-        return HTMLResponse(content=html_path.read_text())
-    return HTMLResponse(content="<h1>Frontend not found</h1>", status_code=404)
+    # Try multiple possible paths for the HTML file
+    possible_paths = [
+        Path(__file__).parent.parent / "index.html",  # Project root
+        Path("/var/task/index.html"),  # Vercel deployment path
+        Path(__file__).parent.parent.parent / "index.html",  # One level up
+    ]
+    
+    for html_path in possible_paths:
+        if html_path.exists():
+            return HTMLResponse(content=html_path.read_text())
+    
+    # If not found, return error with debug info
+    return HTMLResponse(
+        content=f"<h1>Frontend not found</h1><p>Checked paths: {[str(p) for p in possible_paths]}</p>",
+        status_code=404
+    )
 
 
 @app.post("/api/info")
