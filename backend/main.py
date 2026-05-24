@@ -163,6 +163,14 @@ async def run_download_task(job_id: str, req: DownloadRequest):
             "no_warnings": True,
             "progress_hooks": [make_progress_hook(job_id)],
             "postprocessor_hooks": [make_postprocessor_hook(job_id)],
+            # Add options to bypass bot detection
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["android", "web"],
+                    "player_skip": ["configs", "webpage", "js"],
+                }
+            },
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         }
         if ffmpeg_path:
             ydl_opts["ffmpeg_location"] = ffmpeg_path
@@ -279,6 +287,14 @@ async def get_video_info(req: InfoRequest):
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
+        # Add options to bypass bot detection
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "web"],
+                "player_skip": ["configs", "webpage", "js"],
+            }
+        },
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     }
     
     # Add cookie support
