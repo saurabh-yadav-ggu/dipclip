@@ -370,12 +370,13 @@ async def get_video_info(req: InfoRequest):
     }
 
 
-@app.post("/api/download/start")
-async def start_download(req: DownloadRequest):
+@app.post("/api/download")
+async def download(req: DownloadRequest):
     """
-    Start downloading a video/audio in the background.
+    Download a video/audio synchronously and return the file.
     """
     job_id = str(uuid.uuid4())
+    # Initialize job tracking
     DOWNLOAD_JOBS[job_id] = {
         "status": "pending",
         "progress": 0.0,
@@ -386,10 +387,27 @@ async def start_download(req: DownloadRequest):
         "download_name": None,
         "media_type": None,
     }
-    
-    asyncio.create_task(run_download_task(job_id, req))
-    
-    return {"job_id": job_id}
+    # Run the download task synchronously
+    await run_download_task(job_id, req)
+    job = DOWNLOAD_JOBS.get(job_id)
+    if not job or job["status"] != "completed":
+        raise HTTPException(status_code=500, detail="Download failed")
+    file_path = Path(job["file_path"])
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found after download")
+    # Return the file and clean up after response
+    def _cleanup():
+        try:
+            file_path.unlink(missing_ok=True)
+            DOWNLOAD_JOBS.pop(job_id, None)
+        except Exception:
+            pass
+    return FileResponse(
+        path=str(file_path),
+        filename=job["download_name"],
+        media_type=job["media_type"],
+        background=BackgroundTasks().add_task(_cleanup)
+    )
 
 
 @app.get("/api/download/progress/{job_id}")
