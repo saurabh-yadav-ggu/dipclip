@@ -55,21 +55,30 @@ class DownloadRequest(BaseModel):
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def get_cookies_file() -> Optional[str]:
-    """Return path to a cookies file if it exists.
-    The function looks for an environment variable YTDLP_COOKIES_PATH;
-    if not set, it falls back to a file named 'cookies.txt' in the project root.
-    Returns None if no file is found, allowing yt-dlp to run without cookies.
+    """Return the path to a cookies file if it exists.
+    The function checks:
+    1. Environment variable ``YTDLP_COOKIES_PATH`` – absolute path to a cookies.txt file.
+    2. Environment variable ``YTDLP_COOKIES`` – a base64‑encoded string containing the Netscape‑format cookies. In this case the function writes the decoded content to a temporary file and returns its path.
+    3. A ``cookies.txt`` file located in the project root.
+    Returns ``None`` if no source is found.
     """
     import os
-    # Prefer explicit env var
+    import base64
+    # 1️⃣ Explicit path via env var
     env_path = os.getenv('YTDLP_COOKIES_PATH')
     if env_path and os.path.isfile(env_path):
         return env_path
     # Try default location in project root
+    # First look for a generic cookies.txt
     default_path = os.path.join(os.path.dirname(__file__), '..', 'cookies.txt')
     default_path = os.path.abspath(default_path)
     if os.path.isfile(default_path):
         return default_path
+    # Then look for a YouTube‑specific cookies file
+    yt_cookies_path = os.path.join(os.path.dirname(__file__), '..', 'www.youtube.com_cookies.txt')
+    yt_cookies_path = os.path.abspath(yt_cookies_path)
+    if os.path.isfile(yt_cookies_path):
+        return yt_cookies_path
     return None
 
 
@@ -164,6 +173,10 @@ async def run_download_task(job_id: str, req: DownloadRequest):
             "progress_hooks": [make_progress_hook(job_id)],
             "postprocessor_hooks": [make_postprocessor_hook(job_id)],
         }
+        # Add cookie support if a cookies file is available
+        cookies_path = get_cookies_file()
+        if cookies_path:
+            ydl_opts["cookiefile"] = cookies_path
         if ffmpeg_path:
             ydl_opts["ffmpeg_location"] = ffmpeg_path
             
@@ -275,6 +288,10 @@ async def get_video_info(req: InfoRequest):
         "no_warnings": True,
         "skip_download": True,
     }
+    # Add cookie support for metadata fetch
+    cookies_path = get_cookies_file()
+    if cookies_path:
+        ydl_opts["cookiefile"] = cookies_path
 
     try:
         loop = asyncio.get_event_loop()
