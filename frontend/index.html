@@ -667,9 +667,20 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Could not parse video metadata.');
-
+      if (!res.ok) {
+        const errText = await res.text();
+        showError(`Server error: ${res.status} ${errText}`);
+        return;
+      }
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        const txt = await res.text();
+        showError('Invalid JSON response from server.');
+        console.error('Response text:', txt);
+        return;
+      }
       videoData = data;
       renderInfo();
     } catch (err) {
@@ -769,7 +780,7 @@
 
   async function startDownload() {
     if (!selectedFormat || !videoData) return;
-    
+
     // Close any previous SSE connection
     if (activeEventSource) {
       activeEventSource.close();
@@ -777,9 +788,9 @@
 
     const btn = document.getElementById('btn-download');
     const urlInput = document.getElementById('yt-url');
-    
+
     btn.disabled = true;
-    
+
     const card = document.getElementById('progress-card');
     const bar = document.getElementById('progress-bar-fill');
     const statusText = document.getElementById('progress-status-text');
@@ -790,12 +801,12 @@
     card.classList.add('show');
     bar.style.width = '0%';
     pctText.textContent = '0.0%';
-    statusText.textContent = 'Queueing background worker...';
+    statusText.textContent = 'Downloading...';
     speedText.textContent = '—';
     etaText.textContent = '—';
 
     try {
-      const res = await fetch(`${apiBase()}/api/download/start`, {
+      const res = await fetch(`${apiBase()}/api/download`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -805,17 +816,36 @@
           resolution: selectedFormat.resolution,
           title: videoData.title,
           needs_merge: selectedFormat.needs_merge,
-          type: selectedFormat.type
+          type: selectedFormat.type,
         })
       });
 
-      const startData = await res.json();
-      if (!res.ok) throw new Error(startData.detail || 'Failed to trigger background task.');
+      if (!res.ok) {
+        const errText = await res.text();
+        showError(`Download error: ${res.status} ${errText}`);
+        card.classList.remove('show');
+        btn.disabled = false;
+        return;
+      }
 
-      const jobId = startData.job_id;
-      listenToProgress(jobId);
+      // Get filename from content-disposition header if present
+      const disposition = res.headers.get('content-disposition');
+      let filename = 'download';
+      if (disposition && disposition.includes('filename=')) {
+        filename = disposition.split('filename=')[1].replace(/"/g, '');
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
     } catch (err) {
       showError(err.message);
+    } finally {
       card.classList.remove('show');
       btn.disabled = false;
     }
