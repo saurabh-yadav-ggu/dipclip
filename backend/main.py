@@ -64,11 +64,14 @@ def get_cookies_file() -> Optional[str]:
     cookies_b64 = os.environ.get("YOUTUBE_COOKIES_B64")
     if cookies_b64:
         try:
+            # Remove any whitespace or newlines that might have been added
+            cookies_b64 = cookies_b64.strip().replace('\n', '').replace('\r', '')
             cookies_content = base64.b64decode(cookies_b64).decode('utf-8')
             temp_cookie_file = DOWNLOAD_DIR / "cookies.txt"
             temp_cookie_file.write_text(cookies_content)
             return str(temp_cookie_file)
-        except Exception:
+        except Exception as e:
+            print(f"Error decoding cookies: {e}")
             pass
     
     return None
