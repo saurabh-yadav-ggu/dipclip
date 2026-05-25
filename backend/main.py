@@ -110,6 +110,23 @@ def get_cookies_file() -> Optional[str]:
         # but if we can't even copy it, yt-dlp will fail anyway. 
         # In serverless, returning the original read-only path causes [Errno 30].
         return None
+def setup_oauth2() -> Optional[str]:
+    """
+    If YTDLP_OAUTH2_TOKEN is provided as an env var, write it to the /tmp/yt-dlp-cache 
+    directory so the yt-dlp-youtube-oauth2 plugin can load it.
+    """
+    token_json = os.getenv("YTDLP_OAUTH2_TOKEN")
+    if token_json:
+        try:
+            cache_dir = Path(tempfile.gettempdir()) / "yt-dlp-cache"
+            token_path = cache_dir / "youtube-oauth2" / "token.json"
+            token_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(token_path, "w") as f:
+                f.write(token_json)
+            return str(cache_dir)
+        except Exception as e:
+            print(f"Error setting up OAuth2 token: {e}")
+    return None
 
 
 RESOLUTION_ORDER = {
@@ -197,21 +214,29 @@ async def run_download_task(job_id: str, req: DownloadRequest):
             
         out_template = str(DOWNLOAD_DIR / job_id)
         
-        po_token = os.getenv("YTDLP_PO_TOKEN")
-        visitor_data = os.getenv("YTDLP_VISITOR_DATA")
-        
-        yt_args = []
-        if po_token and visitor_data:
-            yt_args.extend([f"po_token=web+{po_token}", f"visitor_data={visitor_data}"])
-
         ydl_opts = {
             "quiet": True,
             "no_warnings": True,
             "progress_hooks": [make_progress_hook(job_id)],
             "postprocessor_hooks": [make_postprocessor_hook(job_id)],
         }
-        if yt_args:
-            ydl_opts["extractor_args"] = {"youtube": yt_args}
+        
+        # Check OAuth2
+        cache_dir = setup_oauth2()
+        if cache_dir:
+            ydl_opts["cache_dir"] = cache_dir
+            ydl_opts["username"] = "oauth2"
+            ydl_opts["password"] = ""
+        else:
+            # Fallback to PO Token if no OAuth2
+            po_token = os.getenv("YTDLP_PO_TOKEN")
+            visitor_data = os.getenv("YTDLP_VISITOR_DATA")
+            yt_args = []
+            if po_token and visitor_data:
+                yt_args.extend([f"po_token=web+{po_token}", f"visitor_data={visitor_data}"])
+            if yt_args:
+                ydl_opts["extractor_args"] = {"youtube": yt_args}
+
         if ffmpeg_path:
             ydl_opts["ffmpeg_location"] = ffmpeg_path
             
@@ -328,20 +353,27 @@ async def get_video_info(req: InfoRequest):
     """
     Fetch video metadata + all available download formats, grouped by resolution and container.
     """
-    po_token = os.getenv("YTDLP_PO_TOKEN")
-    visitor_data = os.getenv("YTDLP_VISITOR_DATA")
-    
-    yt_args = []
-    if po_token and visitor_data:
-        yt_args.extend([f"po_token=web+{po_token}", f"visitor_data={visitor_data}"])
-
     ydl_opts = {
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
     }
-    if yt_args:
-        ydl_opts["extractor_args"] = {"youtube": yt_args}
+    
+    # Check OAuth2
+    cache_dir = setup_oauth2()
+    if cache_dir:
+        ydl_opts["cache_dir"] = cache_dir
+        ydl_opts["username"] = "oauth2"
+        ydl_opts["password"] = ""
+    else:
+        # Fallback to PO Token if no OAuth2
+        po_token = os.getenv("YTDLP_PO_TOKEN")
+        visitor_data = os.getenv("YTDLP_VISITOR_DATA")
+        yt_args = []
+        if po_token and visitor_data:
+            yt_args.extend([f"po_token=web+{po_token}", f"visitor_data={visitor_data}"])
+        if yt_args:
+            ydl_opts["extractor_args"] = {"youtube": yt_args}
 
     try:
         loop = asyncio.get_event_loop()
