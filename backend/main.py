@@ -202,12 +202,8 @@ async def run_download_task(job_id: str, req: DownloadRequest):
             "no_warnings": True,
             "progress_hooks": [make_progress_hook(job_id)],
             "postprocessor_hooks": [make_postprocessor_hook(job_id)],
-            "impersonate": "chrome",
+            "extractor_args": {"youtube": ["player_client=ios,android,tv"]},
         }
-        # Add cookie support if a cookies file is available
-        cookies_path = get_cookies_file()
-        if cookies_path:
-            ydl_opts["cookiefile"] = cookies_path
         if ffmpeg_path:
             ydl_opts["ffmpeg_location"] = ffmpeg_path
             
@@ -238,12 +234,22 @@ async def run_download_task(job_id: str, req: DownloadRequest):
 
         loop = asyncio.get_event_loop()
         
-        def _download():
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        def _download(opts):
+            with yt_dlp.YoutubeDL(opts) as ydl:
                 ydl.download([req.url])
                 
         DOWNLOAD_JOBS[job_id]["status"] = "downloading"
-        await loop.run_in_executor(None, _download)
+        try:
+            await loop.run_in_executor(None, _download, ydl_opts)
+        except Exception as e:
+            cookies_path = get_cookies_file()
+            if cookies_path:
+                ydl_opts_cookies = ydl_opts.copy()
+                ydl_opts_cookies.pop("extractor_args", None)
+                ydl_opts_cookies["cookiefile"] = cookies_path
+                await loop.run_in_executor(None, _download, ydl_opts_cookies)
+            else:
+                raise e
         
         # Locate the actual output file
         final_path = None
@@ -318,12 +324,8 @@ async def get_video_info(req: InfoRequest):
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
-        "impersonate": "chrome",
+        "extractor_args": {"youtube": ["player_client=ios,android,tv"]},
     }
-    # Add cookie support for metadata fetch
-    cookies_path = get_cookies_file()
-    if cookies_path:
-        ydl_opts["cookiefile"] = cookies_path
 
     try:
         loop = asyncio.get_event_loop()
@@ -333,10 +335,28 @@ async def get_video_info(req: InfoRequest):
                 return ydl.extract_info(req.url, download=False)
 
         info = await loop.run_in_executor(None, _extract)
-    except yt_dlp.utils.DownloadError as e:
-        raise HTTPException(status_code=400, detail=f"Could not fetch video: {e}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        cookies_path = get_cookies_file()
+        if cookies_path:
+            ydl_opts_cookies = {
+                "quiet": True,
+                "no_warnings": True,
+                "skip_download": True,
+                "cookiefile": cookies_path,
+            }
+            try:
+                def _extract_cookies():
+                    with yt_dlp.YoutubeDL(ydl_opts_cookies) as ydl:
+                        return ydl.extract_info(req.url, download=False)
+                info = await loop.run_in_executor(None, _extract_cookies)
+            except yt_dlp.utils.DownloadError as err:
+                raise HTTPException(status_code=400, detail=f"Could not fetch video: {err}")
+            except Exception as err:
+                raise HTTPException(status_code=500, detail=str(err))
+        else:
+            if isinstance(e, yt_dlp.utils.DownloadError):
+                raise HTTPException(status_code=400, detail=f"Could not fetch video: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     # Find the best audio sizes first to add to video size estimations
     best_m4a_audio_size = 0

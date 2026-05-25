@@ -2,7 +2,6 @@ fastapi==0.111.0
 uvicorn[standard]==0.29.0
 yt-dlp[default]
 quickjs
-curl_cffi
 python-multipart==0.0.9
 imageio-ffmpeg==0.5.1
 mangum==0.17.0
