@@ -202,7 +202,7 @@ async def run_download_task(job_id: str, req: DownloadRequest):
             "no_warnings": True,
             "progress_hooks": [make_progress_hook(job_id)],
             "postprocessor_hooks": [make_postprocessor_hook(job_id)],
-            "extractor_args": {"youtube": ["player_client=ios,android,tv"]},
+            "extractor_args": {"youtube": ["player_client=tv_embedded,android_embedded"]},
         }
         if ffmpeg_path:
             ydl_opts["ffmpeg_location"] = ffmpeg_path
@@ -324,7 +324,7 @@ async def get_video_info(req: InfoRequest):
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
-        "extractor_args": {"youtube": ["player_client=ios,android,tv"]},
+        "extractor_args": {"youtube": ["player_client=tv_embedded,android_embedded"]},
     }
 
     try:
