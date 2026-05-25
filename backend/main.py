@@ -202,6 +202,7 @@ async def run_download_task(job_id: str, req: DownloadRequest):
             "no_warnings": True,
             "progress_hooks": [make_progress_hook(job_id)],
             "postprocessor_hooks": [make_postprocessor_hook(job_id)],
+            "extractor_args": {"youtube": ["player_client=android,web"]}
         }
         # Add cookie support if a cookies file is available
         cookies_path = get_cookies_file()
@@ -317,6 +318,7 @@ async def get_video_info(req: InfoRequest):
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
+        "extractor_args": {"youtube": ["player_client=android,web"]}
     }
     # Add cookie support for metadata fetch
     cookies_path = get_cookies_file()
