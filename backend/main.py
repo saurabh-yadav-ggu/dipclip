@@ -336,6 +336,7 @@ async def get_video_info(req: InfoRequest):
 
         info = await loop.run_in_executor(None, _extract)
     except Exception as e:
+        stage1_error = str(e)
         cookies_path = get_cookies_file()
         if cookies_path:
             ydl_opts_cookies = {
@@ -349,10 +350,8 @@ async def get_video_info(req: InfoRequest):
                     with yt_dlp.YoutubeDL(ydl_opts_cookies) as ydl:
                         return ydl.extract_info(req.url, download=False)
                 info = await loop.run_in_executor(None, _extract_cookies)
-            except yt_dlp.utils.DownloadError as err:
-                raise HTTPException(status_code=400, detail=f"Could not fetch video: {err}")
             except Exception as err:
-                raise HTTPException(status_code=500, detail=str(err))
+                raise HTTPException(status_code=400, detail=f"Stage 1 Error: {stage1_error} | Stage 2 Error: {err}")
         else:
             if isinstance(e, yt_dlp.utils.DownloadError):
                 raise HTTPException(status_code=400, detail=f"Could not fetch video: {e}")
