@@ -200,7 +200,7 @@ async def run_download_task(job_id: str, req: DownloadRequest):
         po_token = os.getenv("YTDLP_PO_TOKEN")
         visitor_data = os.getenv("YTDLP_VISITOR_DATA")
         
-        yt_args = ["player_client=tv_embedded,android_embedded,web_embedded"]
+        yt_args = []
         if po_token and visitor_data:
             yt_args.extend([f"po_token=web+{po_token}", f"visitor_data={visitor_data}"])
 
@@ -209,8 +209,9 @@ async def run_download_task(job_id: str, req: DownloadRequest):
             "no_warnings": True,
             "progress_hooks": [make_progress_hook(job_id)],
             "postprocessor_hooks": [make_postprocessor_hook(job_id)],
-            "extractor_args": {"youtube": yt_args},
         }
+        if yt_args:
+            ydl_opts["extractor_args"] = {"youtube": yt_args}
         if ffmpeg_path:
             ydl_opts["ffmpeg_location"] = ffmpeg_path
             
@@ -330,7 +331,7 @@ async def get_video_info(req: InfoRequest):
     po_token = os.getenv("YTDLP_PO_TOKEN")
     visitor_data = os.getenv("YTDLP_VISITOR_DATA")
     
-    yt_args = ["player_client=tv_embedded,android_embedded,web_embedded"]
+    yt_args = []
     if po_token and visitor_data:
         yt_args.extend([f"po_token=web+{po_token}", f"visitor_data={visitor_data}"])
 
@@ -338,8 +339,9 @@ async def get_video_info(req: InfoRequest):
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
-        "extractor_args": {"youtube": yt_args},
     }
+    if yt_args:
+        ydl_opts["extractor_args"] = {"youtube": yt_args}
 
     try:
         loop = asyncio.get_event_loop()
