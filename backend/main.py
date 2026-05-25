@@ -113,13 +113,14 @@ def get_cookies_file() -> Optional[str]:
 def setup_oauth2() -> Optional[str]:
     """
     If YTDLP_OAUTH2_TOKEN is provided as an env var, write it to the /tmp/yt-dlp-cache 
-    directory so the yt-dlp-youtube-oauth2 plugin can load it.
+    directory so the native yt-dlp OAuth2 can load it.
     """
     token_json = os.getenv("YTDLP_OAUTH2_TOKEN")
     if token_json:
         try:
             cache_dir = Path(tempfile.gettempdir()) / "yt-dlp-cache"
-            token_path = cache_dir / "youtube-oauth2" / "token.json"
+            # Native yt-dlp stores it as youtube/youtube-oauth2.token_data
+            token_path = cache_dir / "youtube" / "youtube-oauth2.token_data"
             token_path.parent.mkdir(parents=True, exist_ok=True)
             with open(token_path, "w") as f:
                 f.write(token_json)
