@@ -55,31 +55,61 @@ class DownloadRequest(BaseModel):
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def get_cookies_file() -> Optional[str]:
-    """Return the path to a cookies file if it exists.
-    The function checks:
-    1. Environment variable ``YTDLP_COOKIES_PATH`` – absolute path to a cookies.txt file.
-    2. Environment variable ``YTDLP_COOKIES`` – a base64‑encoded string containing the Netscape‑format cookies. In this case the function writes the decoded content to a temporary file and returns its path.
-    3. A ``cookies.txt`` file located in the project root.
-    Returns ``None`` if no source is found.
     """
-    import os
-    import base64
-    # 1️⃣ Explicit path via env var
+    Return a writable temporary copy of a cookies file for yt-dlp.
+    Lookup order:
+    1. YTDLP_COOKIES_PATH env var
+    2. YTDLP_COOKIES env var (base64)
+    3. cookies.txt in project root
+    4. www.youtube.com_cookies.txt in project root
+    """
+    import os, base64, tempfile, shutil
+
+    source_path = None
+    
+    # 1. Explicit path via env var
     env_path = os.getenv('YTDLP_COOKIES_PATH')
     if env_path and os.path.isfile(env_path):
-        return env_path
-    # Try default location in project root
-    # First look for a generic cookies.txt
-    default_path = os.path.join(os.path.dirname(__file__), '..', 'cookies.txt')
-    default_path = os.path.abspath(default_path)
-    if os.path.isfile(default_path):
-        return default_path
-    # Then look for a YouTube‑specific cookies file
-    yt_cookies_path = os.path.join(os.path.dirname(__file__), '..', 'www.youtube.com_cookies.txt')
-    yt_cookies_path = os.path.abspath(yt_cookies_path)
-    if os.path.isfile(yt_cookies_path):
-        return yt_cookies_path
-    return None
+        source_path = env_path
+    else:
+        # 2. Base64-encoded cookies via env var
+        encoded = os.getenv('YTDLP_COOKIES')
+        if encoded:
+            try:
+                decoded = base64.b64decode(encoded)
+                tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.txt')
+                tmp.write(decoded)
+                tmp.close()
+                return tmp.name
+            except Exception:
+                pass
+        
+        # 3. Generic cookies.txt in project root
+        default_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'cookies.txt'))
+        if os.path.isfile(default_path):
+            source_path = default_path
+        else:
+            # 4. YouTube-specific cookies file in project root
+            yt_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'www.youtube.com_cookies.txt'))
+            if os.path.isfile(yt_path):
+                source_path = yt_path
+
+    if not source_path:
+        return None
+
+    # Copy to a temporary writable location for yt-dlp
+    try:
+        tmp_dir = tempfile.gettempdir()
+        tmp = tempfile.NamedTemporaryFile(dir=tmp_dir, delete=False, suffix='.txt')
+        shutil.copyfile(source_path, tmp.name)
+        tmp.close()
+        return tmp.name
+    except Exception as e:
+        print(f"Error copying cookies file: {e}")
+        # Do not return read-only source_path in Vercel because yt-dlp requires a writable file, 
+        # but if we can't even copy it, yt-dlp will fail anyway. 
+        # In serverless, returning the original read-only path causes [Errno 30].
+        return None
 
 
 RESOLUTION_ORDER = {
