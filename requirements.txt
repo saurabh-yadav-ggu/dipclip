@@ -1,6 +1,7 @@
 fastapi==0.111.0
 uvicorn[standard]==0.29.0
-yt-dlp
+yt-dlp[default]
+quickjs
 python-multipart==0.0.9
 imageio-ffmpeg==0.5.1
 mangum==0.17.0
